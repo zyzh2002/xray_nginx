@@ -1,0 +1,51 @@
+version: '3'
+services:
+  xray:
+    image: teddysun/xray:1.8.7
+    container_name: xray
+    volumes:
+      - ./xray:/etc/xray
+      - ./tls_certs:/etc/sslcerts
+    restart: always
+    sysctls:
+      - net.ipv4.tcp_congestion_control=bbr
+      - net.core.default_qdisc = fq
+      - net.ipv4.tcp_fastopen = 3
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    privileged: true
+    networks:
+      brg:
+        ipv4_address: 172.26.238.1
+        ipv6_address: fd00::1
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - ./tls_certs:/etc/sslcerts
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+    sysctls:
+      - net.ipv4.tcp_congestion_control=bbr
+      - net.core.default_qdisc = fq
+      - net.ipv4.tcp_fastopen = 3
+    networks:
+      brg:
+        ipv4_address: 172.26.238.2
+        ipv6_address: fd00::2
+
+networks:
+  brg:
+    enable_ipv6: true
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.26.238.0/24"
+        - subnet: "fd00::/80"
